@@ -1,99 +1,69 @@
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
+const User = require("../models/User");
 
-// User registration
+// Create User
 exports.createUser = async (req, res) => {
-    const { name, email } = req.body;
-    try {
-        let existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ msg: "User already exists with this email" });
-        }
-
-        const newUser = new User({
-            name,
-            email
-        });
-
-        await newUser.save();
-        res.status(201).json({ message: "User registered successfully", user: newUser });
-    } catch (err) {
-        console.log(err.message);
-        res.status(500).send('Error in registering');
-    }
-}
-
-// User login (without password)
-exports.userLogin = async (req, res) => {
-    const { email } = req.body;
-    try {
-        let existingUser = await User.findOne({ email });
-        if (!existingUser) {
-            return res.status(400).json({ msg: "User does not exist with this email: " + email });
-        }
-
-        // create JWT
-        // const payload = {
-        //     user: {
-        //         id: existingUser._id,
-        //         name: existingUser.name,
-        //         email: existingUser.email,
-        //     }
-        // };
-
-        // const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
-
-        res.json({ message: 'User logged in successfully', user: existingUser});
-    } catch (err) {
-        console.log(err.message);
-        res.status(500).send('Server error');
-    }
-}
-
-
-
-
-exports.updateUserLevel = async (userId, testScore) => {
+  const { name, email } = req.body;
   try {
-    const user = await User.findById(userId);
-    if (!user) throw new Error("User not found");
+    let existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ msg: "User already exists" });
 
-    // Add new test score
-    user.testsTaken.push({ score: testScore });
+    const newUser = new User({ name, email });
+    await newUser.save();
 
-    // Calculate new average
-    const totalScore = user.testsTaken.reduce((acc, t) => acc + t.score, 0);
-    const avgScore = totalScore / user.testsTaken.length;
-    user.averageScore = avgScore;
-
-    // Update level based on average score
-    if (avgScore < 50) user.level = "Beginner";
-    else if (avgScore < 80) user.level = "Intermediate";
-    else user.level = "Advanced";
-
-    await user.save();
-    return user;
+    res.status(201).json({ message: "User registered successfully", user: newUser });
   } catch (err) {
-    console.error("Error updating user level:", err);
-    throw err;
+    console.log(err);
+    res.status(500).json({ msg: "Error in registering" });
   }
 };
 
+// User Login
+exports.userLogin = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) return res.status(400).json({ msg: "User does not exist" });
 
-// Controller for submitting test
+    res.json({ message: "User logged in successfully", user: existingUser });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+// Update user level based on test score
+// Update user level based on percentage score
 exports.submitTest = async (req, res) => {
   try {
-    const { userId, score } = req.body; // score: 0-100
+    const { userId, score, total } = req.body; // total number of questions
+    if (!userId) return res.status(400).json({ message: "User ID required" });
 
-const updatedUser = await exports.updateUserLevel(userId, score);
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
+    if (!user.testsTaken) user.testsTaken = [];
+    const percentageScore = (score / total) * 100; // convert to %
+
+    user.testsTaken.push({ score: percentageScore, date: new Date() });
+
+    // Update level based on percentage
+    if (percentageScore < 50) user.level = "Beginner";
+    else if (percentageScore < 80) user.level = "Intermediate";
+    else user.level = "Advanced";
+
+    // Optional: calculate average
+    const totalScore = user.testsTaken.reduce((acc, t) => acc + t.score, 0);
+    user.averageScore = totalScore / user.testsTaken.length;
+
+    await user.save();
 
     res.status(200).json({
       message: "Test submitted successfully",
-      level: updatedUser.level,
-      averageScore: updatedUser.averageScore,
+      level: user.level,
+      averageScore: user.averageScore,
     });
   } catch (err) {
+    console.error("SubmitTest error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

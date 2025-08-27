@@ -12,36 +12,50 @@ import {
   Chip,
 } from "@mui/material";
 
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+
 const Dashboard = () => {
   const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get user info from localStorage
-  const storedUser = JSON.parse(localStorage.getItem("user"));
-  const userName = storedUser?.name || "User";
-  const userLevel = storedUser?.level || "Beginner"; 
-  const userId = storedUser?._id;
+  const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+  const userName = storedUser.name || "User";
+  const userLevel = storedUser.level || "Beginner";
+  const userId = storedUser._id || null;
 
   useEffect(() => {
     if (!userId) return;
 
-    fetch(`https://linkedinproject.onrender.com/api/v1/session/getsessions/${userId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setSessions(Array.isArray(data) ? data : data.sessions || []);
-      })
-      .catch((err) => console.error(err));
+    const fetchSessions = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/v1/session/getsessions/${userId}`);
+        const data = await res.json();
+        console.log("Fetched sessions:", data); 
+        setSessions(data.sessions || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSessions();
   }, [userId]);
+
+  if (!userId) {
+    return <Typography variant="h6">User not found. Please login.</Typography>;
+  }
 
   return (
     <Box p={4}>
-      {/* User info */}
       <Box mb={3}>
         <Typography variant="h4">Welcome, {userName}!</Typography>
         <Chip label={userLevel} color="primary" sx={{ mt: 1 }} />
       </Box>
 
-      {/* Quiz Details Table */}
-      {sessions.length === 0 ? (
+      {loading ? (
+        <Typography>Loading sessions...</Typography>
+      ) : sessions.length === 0 ? (
         <Typography>No session data available.</Typography>
       ) : (
         <Paper sx={{ p: 3 }}>
@@ -63,14 +77,12 @@ const Dashboard = () => {
                 {sessions.map((s, idx) => (
                   <TableRow key={idx}>
                     <TableCell>{idx + 1}</TableCell>
+                    <TableCell>{s.score} / {s.total}</TableCell>
                     <TableCell>
-                      {s.score} / {s.total}
+                      Correct: {s.score}, Wrong: {s.total - s.score}
                     </TableCell>
-                    <TableCell>
-                      {s.score} / {s.total - s.score}
-                    </TableCell>
-                    <TableCell>{s.difficulty}</TableCell>
-                    <TableCell>{s.weakAreas.join(", ") || "N/A"}</TableCell>
+                    <TableCell>{s.difficulty || "N/A"}</TableCell>
+                    <TableCell>{s.weakAreas?.join(", ") || "N/A"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

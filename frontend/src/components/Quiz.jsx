@@ -11,31 +11,27 @@ import {
   Alert,
 } from "@mui/material";
 
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+
 const Quiz = () => {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [score, setScore] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [toast, setToast] = useState({ open: false, message: "", type: "success" });
+  const [userLevel, setUserLevel] = useState("Beginner");
 
-  // Get logged-in user
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const userId = storedUser?._id;
-  const userLevel = storedUser?.level || "Beginner";
 
-  // Fetch questions adaptively based on level
+  // Fetch questions
   useEffect(() => {
+    if (!userId) return;
+    setUserLevel(storedUser?.level || "Beginner");
+
     const fetchQuestions = async () => {
       try {
-        let difficulty = "easy";
-        if (userLevel === "Intermediate") difficulty = ["medium", "hard"];
-        else if (userLevel === "Advanced") difficulty = "hard";
-
-        const query = Array.isArray(difficulty)
-          ? difficulty.map(d => `difficulty=${d}`).join("&")
-          : `difficulty=${difficulty}`;
-
-        const res = await fetch(`https://linkedinproject.onrender.com/api/v1/question/getquestions?${query}`);
+        const res = await fetch(`${BASE_URL}/api/v1/question/getquestions?userId=${userId}`);
         const data = await res.json();
         setQuestions(data.questions || []);
       } catch (err) {
@@ -45,34 +41,35 @@ const Quiz = () => {
     };
 
     fetchQuestions();
-  }, [userLevel]);
+  }, [userId]);
 
   const handleOptionChange = (qId, value) => {
     setAnswers((prev) => ({ ...prev, [qId]: value }));
   };
 
-  const handleClose = () => {
-    setToast({ ...toast, open: false });
-  };
+  const handleClose = () => setToast({ ...toast, open: false });
 
   const handleSubmit = async () => {
+    if (!questions.length) return;
+
     let calculatedScore = 0;
     const weakAreas = [];
 
     questions.forEach((q) => {
-      const selected = answers[q.id];
+      const selected = answers[q._id];
       if (selected === q.correctAnswer) calculatedScore++;
       else weakAreas.push(q.topic);
     });
 
     setScore(calculatedScore);
 
+    // ✅ Correct session payload: use numeric `q.id`
     const sessionPayload = {
-      userId: userId || null,
+      userId,
       questions: questions.map((q) => ({
-        questionId: q.id,
-        selectedOption: answers[q.id] ?? null,
-        isCorrect: answers[q.id] === q.correctAnswer,
+        questionId: q.id, // use numeric ID from Question model
+        selectedOption: answers[q._id] ?? null,
+        isCorrect: answers[q._id] === q.correctAnswer,
       })),
       score: calculatedScore,
       total: questions.length,
@@ -81,56 +78,67 @@ const Quiz = () => {
     };
 
     try {
-      // Save session
-      await fetch("https://linkedinproject.onrender.com/api/v1/session/createsession", {
+      // Create session
+      const sessionRes = await fetch(`${BASE_URL}/api/v1/session/createsession`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sessionPayload),
       });
 
-      // Update user level
-      if (userId) {
-        const levelRes = await fetch("https://linkedinproject.onrender.com/api/v1/user/submittest", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, score: calculatedScore }),
-        });
-        const levelData = await levelRes.json();
-        const updatedUser = { ...storedUser, level: levelData.level };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+      if (!sessionRes.ok) {
+        const errText = await sessionRes.text();
+        throw new Error(`Session creation failed: ${errText}`);
       }
+
+      const sessionData = await sessionRes.json();
+      console.log("Session created:", sessionData);
+
+      // Update user level
+      const levelRes = await fetch(`${BASE_URL}/api/v1/user/submittest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, score: calculatedScore, total: questions.length }),
+      });
+
+      if (!levelRes.ok) {
+        const errText = await levelRes.text();
+        throw new Error(`Level update failed: ${errText}`);
+      }
+
+      const levelData = await levelRes.json();
+      console.log("Level updated:", levelData);
+
+      setUserLevel(levelData.level);
+      localStorage.setItem("user", JSON.stringify({ ...storedUser, level: levelData.level }));
 
       setSubmitted(true);
       setToast({ open: true, message: "Quiz submitted successfully!", type: "success" });
     } catch (err) {
       console.error(err);
-      setToast({ open: true, message: "Error submitting quiz", type: "error" });
+      setToast({ open: true, message: err.message || "Error submitting quiz", type: "error" });
     }
   };
 
-  if (questions.length === 0) return <Typography>Loading questions...</Typography>;
+  if (!questions.length) return <Typography>Loading questions...</Typography>;
 
   return (
     <Box display="flex" flexDirection="column" alignItems="center" mt={5}>
       {questions.map((q) => (
-        <Paper key={q.id} elevation={3} sx={{ p: 3, mb: 2, width: 600 }}>
-          <Typography variant="h6">Q{q.id}: {q.question}</Typography>
+        <Paper key={q._id} elevation={3} sx={{ p: 3, mb: 2, width: 600 }}>
+          <Typography variant="h6">
+            {q.id}. {q.question}
+          </Typography>
           <Typography
             sx={{
-              color:
-                q.difficulty === "easy"
-                  ? "green"
-                  : q.difficulty === "medium"
-                  ? "orange"
-                  : "red",
+              color: q.difficulty === "easy" ? "green" : q.difficulty === "medium" ? "orange" : "red",
               fontWeight: "bold",
             }}
           >
             {q.difficulty}
           </Typography>
           <RadioGroup
-            value={answers[q.id] ?? ""}
-            onChange={(e) => handleOptionChange(q.id, parseInt(e.target.value))}
+            value={answers[q._id] ?? ""}
+            onChange={(e) => handleOptionChange(q._id, parseInt(e.target.value))}
           >
             {q.options.map((opt, idx) => (
               <FormControlLabel key={idx} value={idx} control={<Radio />} label={opt} />
@@ -145,11 +153,10 @@ const Quiz = () => {
         </Button>
       ) : (
         <Typography variant="h5" mt={2}>
-          Your Score: {score} / {questions.length} 
+          Your Score: {score} / {questions.length}
         </Typography>
       )}
 
-      {/* Toast */}
       <Snackbar
         open={toast.open}
         autoHideDuration={3000}

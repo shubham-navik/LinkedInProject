@@ -1,7 +1,6 @@
 const Session = require("../models/Session");
 
-
-// create a new session
+// Create a new session
 exports.createSession = async (req, res) => {
   const { userId, questions, score, total, weakAreas, difficulty } = req.body;
 
@@ -18,21 +17,22 @@ exports.createSession = async (req, res) => {
     await newSession.save();
     res.status(201).json({ message: "Session created successfully", session: newSession });
   } catch (err) {
-    console.log(err.message);
-    res.status(500).send("Error in creating session");
+    console.error("Session creation error:", err);
+    res.status(500).json({ message: err.message || "Error in creating session" });
   }
-}
+};
 
-
-// get all sessions for a user
+// Get all sessions for a user
 exports.getSessionsByUser = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const sessions = await Session.find({ userId }).populate('questions.questionId');
-    res.json(sessions);
+    // Remove populate because questionId is Number
+    const sessions = await Session.find({ userId }).lean();
+
+    res.status(200).json({ sessions });
   } catch (err) {
-    console.log(err.message);
-    res.status(500).send("Error in fetching sessions");
+    console.error("Error fetching sessions:", err);
+    res.status(500).json({ message: "Error in fetching sessions" });
   }
-}
+};

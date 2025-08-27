@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema(
       enum: ["Beginner", "Intermediate", "Advanced"],
       default: "Beginner",
     },
-    averageScore: { type: Number, default: 0 }, // 0-100
+    averageScore: { type: Number, default: 0 },
     testsTaken: [
       {
         score: { type: Number, required: true },
