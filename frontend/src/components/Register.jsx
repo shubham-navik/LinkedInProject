@@ -1,14 +1,39 @@
 import React, { useState } from "react";
-import { Box, Button, TextField, Typography, Paper } from "@mui/material";
+import { Box, Button, TextField, Typography, Paper, Alert } from "@mui/material";
 
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Name:", name, "Email:", email); 
-    // Replace console.log with API call to register user
+
+    try {
+      const res = await fetch("https://linkedinproject.onrender.com/api/v1/user/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSuccess("User registered successfully!");
+        setError("");
+        setName("");
+        setEmail("");
+      } else {
+        setError(data.message || "Registration failed");
+        setSuccess("");
+      }
+    } catch (err) {
+      setError("Server error, try again later.");
+      setSuccess("");
+    }
   };
 
   return (
@@ -22,6 +47,10 @@ const Register = () => {
         <Typography variant="h5" gutterBottom align="center">
           Register
         </Typography>
+
+        {success && <Alert severity="success">{success}</Alert>}
+        {error && <Alert severity="error">{error}</Alert>}
+
         <form onSubmit={handleSubmit}>
           <TextField
             label="Name"
