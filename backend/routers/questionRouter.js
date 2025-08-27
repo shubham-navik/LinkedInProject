@@ -5,6 +5,5 @@ const { createQuestion, getQuestions ,addManyQuestions} = require('../controller
 
 router.post('/createquestion', createQuestion);
 router.get('/getquestions', getQuestions);
-router.get('/addmultiplequestion', addManyQuestions);
 
 module.exports = router;
