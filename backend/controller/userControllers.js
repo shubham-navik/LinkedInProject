@@ -85,7 +85,8 @@ exports.submitTest = async (req, res) => {
   try {
     const { userId, score } = req.body; // score: 0-100
 
-    const updatedUser = await updateUserLevel(userId, score);
+const updatedUser = await exports.updateUserLevel(userId, score);
+
 
     res.status(200).json({
       message: "Test submitted successfully",
