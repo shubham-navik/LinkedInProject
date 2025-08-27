@@ -49,3 +49,50 @@ exports.userLogin = async (req, res) => {
         res.status(500).send('Server error');
     }
 }
+
+
+
+
+exports.updateUserLevel = async (userId, testScore) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) throw new Error("User not found");
+
+    // Add new test score
+    user.testsTaken.push({ score: testScore });
+
+    // Calculate new average
+    const totalScore = user.testsTaken.reduce((acc, t) => acc + t.score, 0);
+    const avgScore = totalScore / user.testsTaken.length;
+    user.averageScore = avgScore;
+
+    // Update level based on average score
+    if (avgScore < 50) user.level = "Beginner";
+    else if (avgScore < 80) user.level = "Intermediate";
+    else user.level = "Advanced";
+
+    await user.save();
+    return user;
+  } catch (err) {
+    console.error("Error updating user level:", err);
+    throw err;
+  }
+};
+
+
+// Controller for submitting test
+exports.submitTest = async (req, res) => {
+  try {
+    const { userId, score } = req.body; // score: 0-100
+
+    const updatedUser = await updateUserLevel(userId, score);
+
+    res.status(200).json({
+      message: "Test submitted successfully",
+      level: updatedUser.level,
+      averageScore: updatedUser.averageScore,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};

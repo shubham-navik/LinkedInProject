@@ -1,17 +1,19 @@
 import React, { useState } from "react";
-import { Box, Button, TextField, Typography, Paper, Alert } from "@mui/material";
+import { Box, Button, TextField, Typography, Paper, Snackbar, Alert } from "@mui/material";
+import { useNavigate } from "react-router-dom";  // ✅ Import navigate
 
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
+  const [toast, setToast] = useState({ open: false, type: "", message: "" });
+
+  const navigate = useNavigate(); // ✅ Initialize navigate
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const res = await fetch("https://linkedinproject.onrender.com/api/v1/user/register", {
+      const res = await fetch("https://linkedinproject.onrender.com/api/v1/user/createuser", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -22,34 +24,32 @@ const Register = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setSuccess("User registered successfully!");
-        setError("");
+        setToast({ open: true, type: "success", message: "User registered successfully!" });
         setName("");
         setEmail("");
+
+        // ✅ Redirect after short delay so user sees toast
+        setTimeout(() => {
+          navigate("/login");  
+        }, 1500);
       } else {
-        setError(data.message || "Registration failed");
-        setSuccess("");
+        setToast({ open: true, type: "error", message: data.message || "Registration failed" });
       }
     } catch (err) {
-      setError("Server error, try again later.");
-      setSuccess("");
+      setToast({ open: true, type: "error", message: "Server error, try again later." });
     }
   };
 
+  const handleClose = () => {
+    setToast({ ...toast, open: false });
+  };
+
   return (
-    <Box
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      minHeight="100vh"
-    >
+    <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
       <Paper elevation={3} sx={{ p: 4, width: 350 }}>
         <Typography variant="h5" gutterBottom align="center">
           Register
         </Typography>
-
-        {success && <Alert severity="success">{success}</Alert>}
-        {error && <Alert severity="error">{error}</Alert>}
 
         <form onSubmit={handleSubmit}>
           <TextField
@@ -69,17 +69,23 @@ const Register = () => {
             required
             margin="normal"
           />
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            sx={{ mt: 2 }}
-          >
+          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
             Register
           </Button>
         </form>
       </Paper>
+
+      {/* Snackbar Toast */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3000}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert onClose={handleClose} severity={toast.type} sx={{ width: "100%" }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

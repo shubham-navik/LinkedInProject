@@ -1,14 +1,20 @@
 import React, { useState } from "react";
-import { Box, Button, TextField, Typography, Paper } from "@mui/material";
+import { Box, Button, TextField, Typography, Paper, Snackbar, Alert } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
+  const [toast, setToast] = useState({ open: false, message: "", type: "success" });
+  const navigate = useNavigate(); // ✅ React Router navigation
+
+  const handleClose = () => {
+    setToast({ ...toast, open: false });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      // Call your backend API
       const res = await fetch("https://linkedinproject.onrender.com/api/v1/user/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -17,19 +23,22 @@ const Login = () => {
 
       const data = await res.json();
       if (res.ok) {
-        console.log("Login success:", data);
-
-        // Store user info in localStorage
+        // Save user
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        // Optionally redirect
-        // window.location.href = "/dashboard";
+        // Show success toast
+        setToast({ open: true, message: "Login successful!", type: "success" });
+
+        // Redirect to dashboard after short delay (so toast shows)
+        setTimeout(() => {
+          navigate("/dashboard"); // ✅ route to dashboard
+        }, 1000);
       } else {
-        alert(data.msg || "Login failed");
+        setToast({ open: true, message: data.msg || "Login failed", type: "error" });
       }
     } catch (err) {
       console.error(err);
-      alert("Server error");
+      setToast({ open: true, message: "Server error", type: "error" });
     }
   };
 
@@ -54,6 +63,18 @@ const Login = () => {
           </Button>
         </form>
       </Paper>
+
+      {/* Toast */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3000}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert onClose={handleClose} severity={toast.type} sx={{ width: "100%" }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

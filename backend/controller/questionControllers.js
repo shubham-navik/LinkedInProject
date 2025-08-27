@@ -45,19 +45,52 @@ exports.createQuestion = async (req, res) => {
 };
 
 // Get 10 questions based on difficulty and topic
+const User = require("../models/User"); // assuming you have a User model
+// const Question = require("../models/Question");
+
 exports.getQuestions = async (req, res) => {
   try {
-    const { difficulty, topic } = req.query;
+    const { userId, topic } = req.query; // client should send userId
     const filter = {};
-    if (difficulty) filter.difficulty = difficulty;
     if (topic) filter.topic = topic;
 
-    const questions = await Question.aggregate([
-      { $match: filter },
-      { $sample: { size: 10 } }, // Randomly select 10 questions
-    ]);
+    let questions = [];
 
-    res.status(200).json({ questions });
+    // 1. Fetch user info
+    const user = await User.findById(userId);
+
+    // Default: beginner if no history
+    let level = "beginner";
+    if (user && user.averageScore !== undefined) {
+      if (user.averageScore < 50) level = "beginner";
+      else if (user.averageScore < 80) level = "intermediate";
+      else level = "advanced";
+    }
+
+    // 2. Pick questions based on level
+    if (level === "beginner") {
+      questions = await Question.aggregate([
+        { $match: { ...filter, difficulty: "easy" } },
+        { $sample: { size: 10 } }
+      ]);
+    } else if (level === "intermediate") {
+      const medium = await Question.aggregate([
+        { $match: { ...filter, difficulty: "medium" } },
+        { $sample: { size: 5 } }
+      ]);
+      const hard = await Question.aggregate([
+        { $match: { ...filter, difficulty: "hard" } },
+        { $sample: { size: 5 } }
+      ]);
+      questions = [...medium, ...hard];
+    } else if (level === "advanced") {
+      questions = await Question.aggregate([
+        { $match: { ...filter, difficulty: "hard" } },
+        { $sample: { size: 10 } }
+      ]);
+    }
+
+    res.status(200).json({ questions, level });
   } catch (error) {
     console.error("Error fetching questions:", error);
     res.status(500).json({ message: "Server error" });
