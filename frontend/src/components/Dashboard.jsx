@@ -24,7 +24,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (!userId) return;
 
-    fetch(`http://localhost:4000/api/v1/session/getsessions/${userId}`)
+    fetch(`https://linkedinproject.onrender.com/api/v1/session/getsessions/${userId}`)
       .then((res) => res.json())
       .then((data) => {
         setSessions(Array.isArray(data) ? data : data.sessions || []);

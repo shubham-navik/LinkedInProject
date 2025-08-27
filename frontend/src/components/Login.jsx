@@ -9,7 +9,7 @@ const Login = () => {
 
     try {
       // Call your backend API
-      const res = await fetch("http://localhost:4000/api/v1/user/login", {
+      const res = await fetch("https://linkedinproject.onrender.com/api/v1/user/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

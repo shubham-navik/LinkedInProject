@@ -21,7 +21,7 @@ const Quiz = () => {
 
   // Fetch questions
   useEffect(() => {
-    fetch("http://localhost:4000/api/v1/question/getquestions") // adjust URL if needed
+    fetch("https://linkedinproject.onrender.com/api/v1/question/getquestions") // adjust URL if needed
       .then((res) => res.json())
       .then((data) => setQuestions(data.questions || []))
       .catch((err) => console.error(err));
@@ -62,7 +62,7 @@ const Quiz = () => {
     };
 
     try {
-      const res = await fetch("http://localhost:4000/api/v1/session/createsession", {
+      const res = await fetch("https://linkedinproject.onrender.com/api/v1/session/createsession", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
