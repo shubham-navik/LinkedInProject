@@ -1,12 +1,12 @@
 # Quiz Dashboard Project - Setup
-  1️⃣ Clone the repository
-  git clone <your-repo-url>
-  cd <repo-folder>
+      1️⃣ Clone the repository
+      git clone <your-repo-url>
+      cd <repo-folder>
 
 # 2️⃣ Backend Setup
 
   # [
-        Navigate to the backend folder (if separate):
+        Navigate to the backend folder
       
         cd backend
         
@@ -17,13 +17,13 @@
         
         Create a .env file in backend:
         
-        MONGO_URI=<your-mongodb-connection-string>
+        DB_url=<your-mongodb-connection-string>
         PORT=5000
       
       
         Start backend server:
         
-        npm run dev
+        nodemon index.js
       
         Your backend will run at: http://localhost:5000
   # ]
@@ -55,7 +55,7 @@
 
 ✅ Optional: To make the frontend accessible on your local network, Vite usually shows a network URL in the terminal like:
 
-http://192.168.x.x:5173
+[http://192.168.x.x:5173](https://studentquizs.netlify.app/)
 
 
 
