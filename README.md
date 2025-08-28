@@ -3,6 +3,8 @@
       git clone <your-repo-url>
       cd <repo-folder>
 
+[click for Live link](https://studentquizs.netlify.app/)
+
 # 2️⃣ Backend Setup
 
   # [
