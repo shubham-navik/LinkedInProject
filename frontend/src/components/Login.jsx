@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Box, Button, TextField, Typography, Paper, Snackbar, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_BASE_URL; // ✅ use .env variable
+const BASE_URL = import.meta.env.VITE_BASE_URL; // ✅ from .env
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -15,24 +16,26 @@ const Login = () => {
     e.preventDefault();
 
     try {
-        const res = await fetch(`${BASE_URL}/api/v1/user/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }), 
-        });
+      const res = await axios.post(`${BASE_URL}/api/v1/user/login`, { email }, {
+        headers: { "Content-Type": "application/json" },
+      });
 
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setToast({ open: true, message: "Login successful!", type: "success" });
-
-        setTimeout(() => navigate("/dashboard"), 1000);
-      } else {
-        setToast({ open: true, message: data.msg || "Login failed", type: "error" });
+      // Assuming backend returns { user, token }
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      if (res.data.token) {
+        localStorage.setItem("token", res.data.token);
       }
+
+      setToast({ open: true, message: "Login successful!", type: "success" });
+      setTimeout(() => navigate("/dashboard"), 1000);
+
     } catch (err) {
       console.error(err);
-      setToast({ open: true, message: "Server error", type: "error" });
+      setToast({
+        open: true,
+        message: err.response?.data?.msg || "Login failed",
+        type: "error",
+      });
     }
   };
 
