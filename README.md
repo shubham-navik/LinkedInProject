@@ -1,7 +1,9 @@
 # Quiz Dashboard Project - Setup
       1️⃣ Clone the repository
-      git clone <your-repo-url>
-      cd <repo-folder>
+      git clone https://github.com/shubham-navik/LinkedInProject
+      cd LinkedInProject // has two file
+      1.frontend
+      2.backend
 
 [click for Live link](https://studentquizs.netlify.app/)
 
